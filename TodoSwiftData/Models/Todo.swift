@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import SwiftUI
 
 @Model
 class Todo {
@@ -22,6 +23,13 @@ class Todo {
         self.title = title
         self.notes = notes
         self.dueDate = dueDate
+    }
+    
+    var notesBinding: Binding<String> {
+        Binding(
+            get: { self.notes ?? "" },
+            set: { self.notes = $0 }
+        )
     }
 }
 

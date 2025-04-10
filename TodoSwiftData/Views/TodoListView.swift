@@ -15,50 +15,42 @@ struct TodoListView: View {
     @Query(sort: \Todo.dueDate, order: .forward)
     var todos: [Todo]
     
-    @Binding var selection: Set<Todo>
     @Binding var todoCount: Int
     @FocusState private var focusedTodoID: PersistentIdentifier?
     
     @State private var newTodoTitle: String = ""
     @State private var newTodoNotes: String = ""
     
-    init(selection: Binding<Set<Todo>>, todoCount: Binding<Int>, searchText: String) {
+    init(todoCount: Binding<Int>, searchText: String) {
         let predicate = #Predicate<Todo> {
             searchText.isEmpty ? true : $0.title.contains(searchText)
         }
-        _selection = selection
         _todoCount = todoCount
         _todos = Query(filter: predicate, sort: \Todo.dueDate)
     }
     
     var body: some View {
-        List(selection: $selection) {
-            ForEach(todos) { todo in
-                TextField("Title", text: Bindable(todo).title)
-                    .focused($focusedTodoID, equals: todo.persistentModelID)
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            deleteTodo(todo)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+        VStack {
+            List() {
+                ForEach(todos) { todo in
+                    ListRow(todo: todo)
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                deleteTodo(todo)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
-                    }
-            }
-//            .onDelete(perform: deleteTodos)
-            TextField("New Todo", text: $newTodoTitle)
-                .onSubmit {
-                    addTodo()
-                    newTodoNotes = ""
-                    newTodoTitle = ""
                 }
+            }
+            .listStyle(.insetGrouped)
         }
         .environment(\.editMode, editMode)
-        .listStyle(.insetGrouped)
         .navigationTitle("Todos")
         .overlay {
             if todos.isEmpty {
                 ContentUnavailableView {
-                    Label("No todos found", systemImage: "checkmark.circle")
+                    Label("Add new todo above", systemImage: "checkmark.circle")
                 } description: {
                     Text("You're a doer. Add a todo and track your progress!")
                 }
@@ -69,11 +61,6 @@ struct TodoListView: View {
         }
         .onChange(of: todos) {
             todoCount = todos.count
-        }
-        .onChange(of: editMode?.wrappedValue) { _, mode in
-            if mode == .active {
-                focusedTodoID = nil
-            }
         }
     }
 }
@@ -86,10 +73,46 @@ extension TodoListView {
     }
     
     private func deleteTodo(_ todo: Todo) {
-        if todo.persistentModelID == todo.persistentModelID {
-            selection = Set<Todo>()
-        }
         modelContext.delete(todo)
+    }
+}
+
+struct ListRow: View {
+    @Bindable var todo: Todo
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TextField("Title", text: $todo.title)
+                .font(.body)
+            TextField("Notes", text: todo.notesBinding)
+                .font(.caption)
+                .padding(.leading)
+                .foregroundStyle(.secondary)
+        }
+        
+    }
+}
+
+struct NewTodoRow: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var newTodoTitle: String = ""
+    @State private var newTodoNotes: String = ""
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TextField("Title", text: $newTodoTitle)
+                .font(.body)
+            TextField("Notes", text: $newTodoNotes)
+                .font(.caption)
+                .padding(.leading)
+                .foregroundStyle(.secondary)
+        }
+        .onSubmit {
+            addTodo()
+            newTodoNotes = ""
+            newTodoTitle = ""
+        }
+    
     }
     
     private func addTodo() {
