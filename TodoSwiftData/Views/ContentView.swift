@@ -9,32 +9,31 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var searchText: String = ""
-    @State private var selection: Todo?
+    @State private var selection = Set<Todo>()
     @State private var todoCount = 0
     @State private var showAddTodo: Bool = false
+    @Environment(\.editMode) private var editMode
     
     var body: some View {
-        NavigationSplitView {
+        NavigationStack {
             TodoListView(selection: $selection,
                          todoCount: $todoCount,
                          searchText: searchText)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        EditButton()
-                            .disabled(todoCount == 0)
-                    }
-                    ToolbarItem(placement: .topBarTrailing) {
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EditButton()
+                        .disabled(todoCount == 0)
+                }
+                ToolbarItem(placement: .bottomBar) {
+                    HStack {
+                        Spacer()
                         Button {
                             showAddTodo = true
                         } label: {
                             Image(systemName: "plus")
                         }
+                        .padding()
                     }
-                }
-        } detail: {
-            if let selection {
-                NavigationStack {
-                    TodoDetailView(todo: selection)
                 }
             }
         }
